@@ -6,6 +6,118 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function createCharts() {
+            //Object storing all necessary API's URL
+            const url = {
+                "pokemon": function(pkm) {
+                    return "https://pokeapi.co/api/v2/pokemon/" + pkm;
+                },
+                "currency": {
+                    "brl": "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/brl.json",
+                    "usd": "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json",
+                    "brlDate": function(date) {
+                        return "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/" + date + "/currencies/brl.json"
+                    },
+                    "usdDate": function(date) {
+                        return "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/" + date + "/currencies/usd.json"
+                    },
+                    "usdBrlDate": function(date) {
+                        return "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/" + date + "/currencies/usd/brl.json"
+                    },
+                    "usdBrl": "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd/brl.json"
+                }
+            };
+
+            //#region Ratio's Chart
+            const ratioRow = [];
+            const ratioColumn = [];
+
+            fetch(url.currency.brl)
+                .then(resp => resp.json())
+                .then(result => {
+                    Object.entries(result.brl).forEach(element => {
+                        if (element[1] < 1) {
+                            ratioRow.push(element[0]);
+                            ratioColumn.push(element[1]);
+                        }
+                    });
+                })
+
+            const ratioData = {
+                labels: ratioRow,
+                datasets: [{
+                    label: 'Razão entre entre real e moeda',
+                    backgroundColor: 'rgb(134, 235, 135)',
+                    data: ratioColumn,
+                }]
+            };
+
+            const ratioConfig = {
+                type: 'bar',
+                data: ratioData,
+                options: {},
+            };
+
+            var ratioChart = new Chart(
+                document.getElementById('ratio'),
+                ratioConfig
+            );
+            //#endregion
+
+            //#region Month's Chart
+            const monthRow = [];
+            const monthColumn = [];
+
+
+            for (let index = 30; index > 0; index--) {
+                let date = new Date(new Date().setDate(new Date().getDate() - index));
+                let dateString = date.toISOString().replace(/T.*/, "");
+
+                fetch(url.currency.usdBrlDate(dateString))
+                    .then(resp => resp.json())
+                    .then(result => {
+                        monthRow.push(result.date.replace(/[0-9][0-9][0-9][0-9]-[0-9][0-9]-/, ""));
+                        monthColumn.push(result.brl);
+                    });
+            }
+
+            const monthData = {
+                labels: monthRow,
+                datasets: [{
+                    label: 'Cotação do dia',
+                    backgroundColor: 'rgb(89, 128, 255)',
+                    data: monthColumn,
+                }]
+            };
+
+            const monthConfig = {
+                type: 'line',
+                data: monthData,
+                options: {},
+            };
+
+            var monthChart = new Chart(
+                document.getElementById('month'),
+                monthConfig
+            );
+            //#endregion
+
+            //#region PokeDolar Chart
+            fetch(url.currency.usdBrl)
+                .then(resp => resp.json())
+                .then(result => {
+                    document.querySelector("#dolarValue").textContent = "Cotação do Dolar está em USD$" + result.brl.toFixed(2).toString();
+                    fetch(url.pokemon(result.brl.toFixed(2).toString().replace(".", "")))
+                        .then(resp => resp.json())
+                        .then(result => {
+                            document.querySelector("#pkmnImg").src = result.sprites.other["official-artwork"].front_default;
+                            document.querySelector("#pkmnInfo").textContent = result.name + " - #" + result.id;
+                        })
+                })
+                //#endregion
+        }
+    </script>
     <title>WebAPI Test</title>
     <style>
         body {
@@ -29,11 +141,11 @@
     <div>
         <div style="text-align: center; font-size: larger;">Relação do Real entre várias moedas</div>
         <br>
-        <canvas id="ratio"></canvas>
+        <div style="margin: auto; width: 70%; height: 100%;"><canvas style="width: 70%; height: 100%;" id="ratio"></canvas></div>
         <br><br>
         <div style="text-align: center; font-size: larger;">Cotação do dólar dentro dos últimos 30 dias</div>
         <br>
-        <canvas id="month"></canvas>
+        <div style="margin: auto; width: 70%; height: 100%;"><canvas id="month" style="width: 70%; height: 100%;"></canvas></div>
         <br><br>
         <div style="text-align: center; font-size: larger;">Usando cotação do Dólar atual como ID da Pokedex</div>
         <div id="pokedolar"></div>
@@ -46,114 +158,7 @@
         </div>
     </div>
     <script>
-        //Object storing all necessary API's URL
-        const url = {
-            "pokemon": function(pkm) {
-                return "https://pokeapi.co/api/v2/pokemon/" + pkm;
-            },
-            "currency": {
-                "brl": "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/brl.json",
-                "usd": "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json",
-                "brlDate": function(date) {
-                    return "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/" + date + "/currencies/brl.json"
-                },
-                "usdDate": function(date) {
-                    return "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/" + date + "/currencies/usd.json"
-                },
-                "usdBrlDate": function(date) {
-                    return "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/" + date + "/currencies/usd/brl.json"
-                },
-                "usdBrl": "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd/brl.json"
-            }
-        };
-
-        //#region Ratio's Chart
-        const ratioRow = [];
-        const ratioColumn = [];
-
-        fetch(url.currency.brl)
-            .then(resp => resp.json())
-            .then(result => {
-                Object.entries(result.brl).forEach(element => {
-                    if (element[1] < 1) {
-                        ratioRow.push(element[0]);
-                        ratioColumn.push(element[1]);
-                    }
-                });
-            })
-
-        const ratioData = {
-            labels: ratioRow,
-            datasets: [{
-                label: 'Razão entre entre real e moeda',
-                backgroundColor: 'rgb(134, 235, 135)',
-                data: ratioColumn,
-            }]
-        };
-
-        const ratioConfig = {
-            type: 'bar',
-            data: ratioData,
-            options: {},
-        };
-
-        var ratioChart = new Chart(
-            document.getElementById('ratio'),
-            ratioConfig
-        );
-        //#endregion
-
-        //#region 
-        const monthRow = [];
-        const monthColumn = [];
-
-
-        for (let index = 30; index > 0; index--) {
-            let date = new Date(new Date().setDate(new Date().getDate() - index));
-            let dateString = date.toISOString().replace(/T.*/, "");
-
-            fetch(url.currency.usdBrlDate(dateString))
-                .then(resp => resp.json())
-                .then(result => {
-                    monthRow.push(result.date.replace(/[0-9][0-9][0-9][0-9]-[0-9][0-9]-/, ""));
-                    monthColumn.push(result.brl);
-                });
-        }
-
-        const monthData = {
-            labels: monthRow,
-            datasets: [{
-                label: 'Cotação do dia',
-                backgroundColor: 'rgb(89, 128, 255)',
-                data: monthColumn,
-            }]
-        };
-
-        const monthConfig = {
-            type: 'line',
-            data: monthData,
-            options: {},
-        };
-
-        var monthChart = new Chart(
-            document.getElementById('month'),
-            monthConfig
-        );
-        //#endregion
-
-        //#region 
-        fetch(url.currency.usdBrl)
-            .then(resp => resp.json())
-            .then(result => {
-                document.querySelector("#dolarValue").textContent = "Cotação do Dolar está em USD$" + result.brl.toFixed(2).toString();
-                fetch(url.pokemon(result.brl.toFixed(2).toString().replace(".", "")))
-                    .then(resp => resp.json())
-                    .then(result => {
-                        document.querySelector("#pkmnImg").src = result.sprites.other["official-artwork"].front_default;
-                        document.querySelector("#pkmnInfo").textContent = result.name + " - #" + result.id;
-                    })
-            })
-            //#endregion
+        document.addEventListener('DOMContentLoaded', createCharts())
     </script>
 </body>
 <script>
